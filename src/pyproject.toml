@@ -1,0 +1,32 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "dinov2_downstream"
+version = "0.0.1"
+description = "The goal of the project is to finetune the DINOv2 backbone which is originally pretrained by Meta using the SSL technique for downstream tasks."
+authors = [
+  { name = "Badar alam" },
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License"
+]
+requires-python = "~=3.10"
+
+[tool.black]
+line-length = 99
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+)/
+'''
+
+[tool.ruff.lint.isort]
+known_first_party = ["dinov2_downstream"]
+force_sort_within_sections = true
