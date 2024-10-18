@@ -6,6 +6,11 @@
 
 The goal of the project is to finetune the DINOv2 backbone which is originally pretrained by Meta using the SSL technique for downstream tasks.
 
+## TODO
+- [x] Add the DINOv2 downstream for the classification task
+- [ ] Adding HYO Optimization
+- [ ] Add the Object Segmentation task
+- [ ] Pretrain the Dinov2 backbone on the custom unlabeled dataset
 ## Project Organization
 
 ```
