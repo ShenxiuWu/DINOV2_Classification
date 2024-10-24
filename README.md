@@ -8,59 +8,61 @@ The goal of the project is to finetune the DINOv2 backbone which is originally p
 
 ## TODO
 - [x] Add the DINOv2 downstream for the classification task
-- [ ] Adding HYO Optimization
+- [x] Adding HYO Optimization
 - [ ] Add the Object Segmentation task
 - [ ] Pretrain the Dinov2 backbone on the custom unlabeled dataset
 ## Project Organization
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
+├── LICENSE            <- Open-source license, if applicable.
+├── README.md          <- Top-level README for developers using this project.
+├── dataset            <- Directory containing datasets for all experiments.
+├── environment.yaml   <- Requirements file for reproducing the analysis environment.
 │
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         dinov2_downstream and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── dinov2_downstream   <- Source code for use in this project.
+└── src                <- Source code for this project.
     │
-    ├── __init__.py             <- Makes dinov2_downstream a Python module
+    ├── data        
+    │   ├── data_loading.py          <- Code for data loading, including initializing the iterable for data fetching.
+    ├── HYO        
+    │   ├── Hyperparameter_optimization.py   <- Code for hyperparameter optimization using the Optuna toolkit.
     │
-    ├── config.py               <- Store useful variables and configuration
+    ├── utils                
+    │   ├── Utils.py          <- Utility functions, such as early stopping.
     │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
-```
+    ├── models                
+    │   ├── classifier.py          <- Code for adding a custom classifier to the DINOv2 model.
+    │   └── train_validation_test.py <- Code for model training, validation, and evaluation.
+    ├── main     
+    │   ├── __init__.py      <- Makes dinov2_downstream a Python module.    
+    │   ├── main.py          <- Initializes the model, loads data, trains the model, and evaluates performance.
+    │   └── model_logs       <- Directory containing model logs, including saved checkpoints.
 
---------
+```
+## Usage
+
+To use the DINOv2 Image Classifier, follow these steps:
+
+1. **Clone the repository:**
+
+    ```python
+    git clone https://github.com/Badar-e-Alam/DINOv2_Downstream.git
+    cd DINOv2_Downstream
+    ```
+
+2. **Create the conda environment using the environment.yaml file:**
+
+    ```python
+    conda env create -f environment.yaml
+    conda activate dinov2_env
+    ```
+
+3. **Run the main script for model classification:**
+
+    ```python
+    python src/main/main.py
+    ```
+### Classification Results
+
+![Classification Results](src/Result_Image/classification_results_Fashion_mnist_dataset.png)
+
 

@@ -1,5 +1,5 @@
 # Data
-/dataset
+src/dataset
 
 # Mac OS-specific storage files
 .DS_Store

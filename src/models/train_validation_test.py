@@ -15,7 +15,6 @@ from torch import nn
 from torch.cuda.amp import GradScaler, autocast
 from utils.Utils import get_metrics
 import numpy as np
-from sklearn.metrics import f1_score
 
 
 def train_one_epoch_mix(
@@ -38,7 +37,7 @@ def train_one_epoch_mix(
     """
     model.train()
     total_loss = 0
-    accuracy_top1, accuracy_top5, precision, recall, f1_score = metrics
+    accuracy_top1, precision, recall, f1_score = metrics
 
     for data, target in tqdm.tqdm(train_loader):
         data, target = data.to(device, non_blocking=True), target.to(
@@ -56,28 +55,23 @@ def train_one_epoch_mix(
 
         total_loss += loss.item() * data.size(0)
         preds = torch.argmax(output, dim=1).detach()
-
         accuracy_top1.update(preds, target)
-        accuracy_top5.update(preds, target)
         precision.update(preds, target)
         recall.update(preds, target)
         f1_score.update(preds, target)
 
     avg_train_loss = total_loss / len(train_loader.dataset)
     train_acc = accuracy_top1.compute()
-    train_acc_top5 = accuracy_top5.compute()
     train_prec = precision.compute()
     train_rec = recall.compute()
     train_f1 = f1_score.compute()
 
-    # Reset metrics for next epoch
     accuracy_top1.reset()
-    accuracy_top5.reset()
     precision.reset()
     recall.reset()
     f1_score.reset()
 
-    return avg_train_loss, train_acc,train_acc_top5, train_prec, train_rec, train_f1
+    return avg_train_loss, train_acc, train_prec, train_rec, train_f1
 
 
 def validate_one_epoch_mix(model, valid_loader, loss_fn, device, metrics):
@@ -98,7 +92,8 @@ def validate_one_epoch_mix(model, valid_loader, loss_fn, device, metrics):
 
     model.eval()
     total_val_loss = 0
-    accuracy_top1, accuracy_top5, precision, recall, f1_score = metrics
+    # accuracy_top5
+    accuracy_top1, precision, recall, f1_score = metrics
 
     with torch.no_grad():
         for data, target in tqdm.tqdm(valid_loader):
@@ -114,29 +109,29 @@ def validate_one_epoch_mix(model, valid_loader, loss_fn, device, metrics):
             preds = torch.argmax(output, dim=1).detach()
 
             accuracy_top1.update(preds, target)
-            accuracy_top5.update(preds, target)
+            # accuracy_top5.update(preds, target)
             precision.update(preds, target)
             recall.update(preds, target)
             f1_score.update(preds, target)
 
     avg_val_loss = total_val_loss / len(valid_loader.dataset)
     val_acc = accuracy_top1.compute()
-    val_acc_top5 = accuracy_top5.compute()
+    # val_acc_top5 = accuracy_top5.compute()
     val_prec = precision.compute()
     val_rec = recall.compute()
     val_f1 = f1_score.compute()
 
     # Reset metrics for next epoch
     accuracy_top1.reset()
-    accuracy_top5.reset()
+    # accuracy_top5.reset()
     precision.reset()
     recall.reset()
     f1_score.reset()
+    # val_acc_top5
+    return avg_val_loss, val_acc, val_prec, val_rec, val_f1
 
-    return avg_val_loss, val_acc,val_acc_top5, val_prec, val_rec, val_f1
 
-
-def test_loop_mix(model, test_loader, loss_fn, device,metrics):
+def test_loop_mix(model, test_loader, loss_fn, device, metrics):
     """
     Perform the testing loop for a given model on the test dataset.
 
@@ -145,16 +140,14 @@ def test_loop_mix(model, test_loader, loss_fn, device,metrics):
         test_loader (torch.utils.data.DataLoader): The data loader for the test dataset.
         loss_fn (torch.nn.Module): The loss function used for evaluation.
         device (torch.device): The device on which the computation will be performed.
-       
+
     Returns:
         tuple: A tuple containing the average test loss, test accuracy, test precision,
                 test recall, and test F1 score.
     """
     model.eval()
     total_val_loss = 0
-    accuracy_top1, accuracy_top5, precision, recall, f1_score = metrics
-    threshold = torch.tensor(threshold).to(device)
-    threshold = threshold[None, :]
+    accuracy_top1, precision, recall, f1_score = metrics
     with torch.no_grad():
         for data, target in tqdm.tqdm(test_loader):
             data, target = data.to(device, non_blocking=True), target.to(
@@ -166,30 +159,24 @@ def test_loop_mix(model, test_loader, loss_fn, device,metrics):
                 loss = loss_fn(output, target)
 
             total_val_loss += loss.item() * data.size(0)
-            # model_output = torch.sigmoid(output)
-            preds =torch.argmax(output, dim=1).detach()
-            
+            preds = torch.argmax(output, dim=1).detach()
+
             accuracy_top1.update(preds, target)
-            accuracy_top5.update(preds, target)
             precision.update(preds, target)
             recall.update(preds, target)
             f1_score.update(preds, target)
 
     avg_test_loss = total_val_loss / len(test_loader.dataset)
     test_acc = accuracy_top1.compute()
-    test_acc_top5 = accuracy_top5.compute()
     test_prec = precision.compute()
     test_rec = recall.compute()
     test_f1 = f1_score.compute()
 
-    # Reset metrics for next epoch
     accuracy_top1.reset()
-    accuracy_top5.reset()   
     precision.reset()
     recall.reset()
     f1_score.reset()
-
-    return avg_test_loss, test_acc,test_acc_top5, test_prec, test_rec, test_f1
+    return avg_test_loss, test_acc, test_prec, test_rec, test_f1
 
 
 def train_validation(
@@ -210,84 +197,32 @@ def train_validation(
             validation precision, validation recall, validation F1 score, training accuracy,
             average training loss, training precision, training recall, and training F1 score.
     """
+    results_metrics = {}
+    scaler = torch.amp.GradScaler("cuda")
 
-    scaler = GradScaler()
     model.to(device)
     metrics = get_metrics(task="multiclass", num_class=10, device=device)
-
-    avg_train_loss, train_acc,train_acc_top5, train_prec, train_rec, train_f1 = train_one_epoch_mix(
+    avg_train_loss, train_acc, train_prec, train_rec, train_f1 = train_one_epoch_mix(
         model, train_loader, optimizer, loss_fn, scaler, device, metrics
     )
+    if valid_loader is not None:
+        
+        avg_val_loss, val_acc, val_prec, val_rec, val_f1 = validate_one_epoch_mix(
+            model, valid_loader, loss_fn, device, metrics
+        )
 
-    avg_val_loss, val_acc,val_acc_top5, val_prec, val_rec, val_f1 = validate_one_epoch_mix(
-        model, valid_loader, loss_fn, device, metrics
-    )
+    else:
+        avg_val_loss, val_acc, val_prec, val_rec, val_f1 = None, None, None, None, None
+    
+    results_metrics["train_acc"] = train_acc
+    results_metrics["train_loss"] = avg_train_loss
+    results_metrics["train_prec"] = train_prec
+    results_metrics["train_rec"] = train_rec
+    results_metrics["train_f1"] = train_f1
+    results_metrics["val_acc"] = val_acc
+    results_metrics["val_loss"] = avg_val_loss
+    results_metrics["val_prec"] = val_prec
+    results_metrics["val_rec"] = val_rec
+    results_metrics["val_f1"] = val_f1
 
-    print(
-        f"Epoch {epoch}, Training Loss: {avg_train_loss:.4f}, Training Accuracy: {train_acc:.4f}, Training Accuracy_Top5:{train_acc_top5} ,Training Precision: {train_prec:.4f}, Training Recall: {train_rec:.4f}, Training F1-score: {train_f1:.4f}"
-    )
-    print(
-        f"Epoch {epoch}, Validation Loss: {avg_val_loss:.4f}, Validation Accuracy: {val_acc:.4f}, Validation Accuracy_Top5: {val_acc_top5:.4f}, Validation Precision: {val_prec:.4f}, Validation Recall: {val_rec:.4f}, Validation F1-score: {val_f1:.4f}"
-    )
-
-    return (
-        avg_val_loss,
-        val_acc,
-        val_prec,
-        val_rec,
-        val_f1,
-        val_acc_top5,
-        train_acc,
-        train_acc_top5,
-        avg_train_loss,
-        train_prec,
-        train_rec,
-        train_f1,
-    )
-
-
-def find_best_threshold_base(model, data_loader, DEVICE):
-    """
-    Finds the best threshold for each class that maximizes the F1 score.
-
-    Args:
-        model: The model to be evaluated.
-        val_loader: The DataLoader for the validation data.
-        DEVICE: The device type (CPU or GPU).
-
-    Returns:
-        best_thresholds: A list of the best thresholds for each class.
-    """
-    num_classes = 3
-    best_thresholds = []
-    model.eval()
-    with torch.no_grad():
-        for class_idx in range(num_classes):
-            all_preds = []
-            all_labels = []
-            for batch_idx, (data, target) in tqdm.tqdm(enumerate(data_loader)):
-                data = data.to(DEVICE)
-                target = target.to(DEVICE)
-
-                with autocast():
-                    model_output = model(data)
-                sigmoid = nn.Sigmoid()
-                model_output = sigmoid(model_output)
-                preds = model_output[:, class_idx]
-                all_preds.append(preds.cpu().numpy())
-                all_labels.append(target[:, class_idx].cpu().numpy())
-
-            all_preds = np.concatenate(all_preds)
-            all_labels = np.concatenate(all_labels)
-
-            thresholds = np.linspace(0, 1, num=100)
-            f1_scores = []
-            for threshold in thresholds:
-                preds_binary = (all_preds > threshold).astype(int)
-                f1 = f1_score(all_labels, preds_binary)
-                f1_scores.append(f1)
-            print(np.max(f1_scores))
-            best_threshold = thresholds[np.argmax(f1_scores)]
-            best_thresholds.append(best_threshold)
-
-    return best_thresholds
+    return results_metrics
