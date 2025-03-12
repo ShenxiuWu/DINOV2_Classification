@@ -45,8 +45,8 @@ To use the DINOv2 Image Classifier, follow these steps:
 1. **Clone the repository:**
 
     ```python
-    git clone https://github.com/Badar-e-Alam/DINOv2_Downstream.git
-    cd DINOv2_Downstream
+    git clone https://github.com/ShenxiuWu/DINOV2_Classification.git
+    cd DINOV2_Classification
     ```
 
 2. **Create the conda environment using the environment.yaml file:**
