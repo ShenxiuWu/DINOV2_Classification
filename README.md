@@ -53,7 +53,7 @@ To use the DINOv2 Image Classifier, follow these steps:
 
     ```python
     conda env create -f environment.yaml
-    conda activate dinov2_env
+    conda activate DINOV2_Classification
     ```
 
 3. **Run the main script for model classification:**
